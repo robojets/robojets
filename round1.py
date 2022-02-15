@@ -1,5 +1,5 @@
 def Round1(robo):
-    robo.drive_stright(425,500)
-    robo.turn(-120)
-    robo.drive_stright(300,-600)
+    robo.drive_stright(450,600,700)
+    robo.turn(120)
+    robo.drive_stright(350,600,900)
     #525
