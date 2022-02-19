@@ -15,7 +15,7 @@ from master import get_user_input,ClickType
 
 def Round0(robo):
      # Initialize the motors.
-    crnt_run = "striaght"
+    crnt_run = "straight"
     while True:
         ev3.screen.clear()
         big_font = Font(size=24)

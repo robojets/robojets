@@ -11,9 +11,9 @@ from robo import Robo
 from ori import Round2 as three
 from round1 import Round1 as one
 from round5 import Round5 as two
+from round4 import Round4 as four
 from round0 import Round0 as col
 from master import master_func
-from ori import Round2
 from os import listdir
 
 
@@ -26,5 +26,5 @@ else:
     my_robot = robot1_paramters # default, in case a file was not defined  
 
 robo = Robo(my_robot)
-run_list = [one,two,three,col]
+run_list = [four,two,three,one,col]
 master_func(run_list,robo)

@@ -6,15 +6,15 @@ def Round1(robo):
        robo.drive_speed(100, speed=250)
        return
        robo.turn(20)
-       robo.drive_stright(412)
+       robo.drive_straight(412)
        return
        robo.turn(150)
-       robo.drive_stright(360,300,300)
+       robo.drive_straight(360,300,300)
        return
        robo.turn(50)
        return
-       robo.drive_stright(600,300)
+       robo.drive_straight(600,300)
        return
-       robo.drive_stright(-20)
+       robo.drive_straight(-20)
        robo.turn(10)
        robo.drive_speed(200)

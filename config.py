@@ -14,9 +14,9 @@ from robo import Robo
 robot1_paramters = {
     #(פרמטרים של רובוט (זה תואם לפרמטרים של רובוט שתיים
     "diameter" : 70.8,#אחראי על קוטר גלגל
-    "axl_track":98,#אחראי על ציר סיבוב
-    "left_wheal" : Port.A,#גלגל שמאלי
-    "right_wheal" : Port.B,#גלגל ימני
+    "axl_track":96,#אחראי על ציר סיבוב
+    "left_wheal" : Port.B,#גלגל שמאלי 
+    "right_wheal" : Port.A,#גלגל ימני
     "lift":Port.C,#מנוע זרוע מעלית
     "arm":Port.D,#מנוע זרוע צידי
     "lift_gears":[16,40,24],#גלגלי שיניים של כל זרוע
@@ -30,16 +30,16 @@ robot1_paramters = {
 
 robot2_paramters = {
     "diameter" : 73.5,
-    "axl_track": 103.5,
+    "axl_track": 110,
     "left_wheal" :Port.A,
     "right_wheal" : Port.C,
     "lift":Port.B,
     "arm":Port.D,
     "lift_gears":[16,40,24],
     "arm_gears":[8,24,40],
-    "color_sensor_left": Port.S2,
-    "color_sensor_right": Port.S3,
-    "touch_sensor": Port.S1,
-     "gyro_sensor": Port.S4,
+    "color_sensor_left": Port.S1,
+    "color_sensor_right": Port.S4,
+    "touch_sensor": Port.S3,
+    "gyro_sensor": Port.S2,
      "use_gyro": False
 }
