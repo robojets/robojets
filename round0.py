@@ -1,5 +1,5 @@
 import time
-from round_one import Round1
+#from round_one import Round1
 
 from pybricks.hubs import EV3Brick
 from pybricks.media.ev3dev import Font
@@ -11,7 +11,7 @@ ev3 = EV3Brick()
 #from pybricks.robotics import DriveBase
 #from pybricks.media.ev3dev import SoundFile, ImageFile  
 from robo import Robo
-from master import get_user_input,ClickType
+from master import get_user_input, ClickType
 
 def Round0(robo):
      # Initialize the motors.

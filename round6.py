@@ -1,3 +1,4 @@
 
 def Round6(robo):
-    robo.straight_speed(1000,500)
+    #print(robo.drive_to_line(color=0))
+    robo.follow_line()

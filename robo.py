@@ -6,9 +6,10 @@ from pybricks.tools import wait
 from pybricks.robotics import DriveBase
 
 class arm():
-    def __init__(self,mtr_1):
-        self.mtr = mtr_1
+    def __init__(self, motor, duty_limit):
+        self.mtr = motor
         self.advance = 0
+        self.duty = duty_limit
 
     #####################################################################
     # Function name: move(angle, speed)
@@ -17,10 +18,20 @@ class arm():
     # Parameters:
     #   angle - how many degree to turn the arm angine, positive or negative 
     #   speed - what speed to turn the arm engine
-    def move(self, angle, speed=360):# מזיז את ה זרועה ו עוזב
-        self.mtr.run_angle(speed, angle, then=Stop.COAST, wait=True)
-        self.advance += angle
-        return
+    #   time  - if provided time parameter and agle is zero, 
+    #            the arm will move at a given time and the function will return immediately
+    # Return value: the current angle of the arm
+    def move(self, angle=0, speed=360, time=0): # מזיז את ה זרועה ו עוזב
+        if (time <= 0) or (angle > 0):
+            self.mtr.run_angle(speed, angle, then=Stop.COAST, wait=False)
+            while(not self.mtr.done()):
+                if self.mtr.stalled():
+                    break
+                wait(20)
+            self.advance += angle
+        elif time > 0:
+            self.run_time((speed, time, then=Stop.COAST, wait=False)
+        return self.advance
 
     #####################################################################
     # Function name: hold(angle, speed)
@@ -29,20 +40,30 @@ class arm():
     # Parameters:
     #   angle - how many degree to turn the arm angine, positive or negative 
     #   speed - what speed to turn the arm engine
+    # Return value: the current angle of the arm
     def hold(self, angle, speed=360):  
-        self.mtr.run_angle(speed, angle, then=Stop.HOLD, wait=True)
+        self.mtr.run_angle(speed, angle, then=Stop.HOLD, wait=False)
+        while(not self.mtr.done()):
+            if self.mtr.stalled():
+                break
+            wait(20)
         self.advance += angle
-        return
+        return self.advance
 
     #####################################################################
     # Function name: reset(speed)
     # Description: moves the robot arm to the starting position
     # Parameters:
     #   speed - what speed to turn the arm engine
+    # Return value: the current angle of the arm
     def reset(self, speed=360):#
-        self.mtr.run_angle(speed, self.advance*-1, then=Stop.HOLD, wait=True)
-        self.advance = 0
-        return
+        self.mtr.run_angle(speed, self.advance*-1, then=Stop.HOLD, wait=False)
+        while(not self.mtr.done()):
+            if self.mtr.stalled():
+                break
+            wait(20)
+        self.advance += angle
+        return self.advance
 
     #####################################################################
     # Function name: up(speed)
@@ -50,9 +71,9 @@ class arm():
     # Parameters:
     #   speed - what speed to turn the arm engine
     def up(self, speed=360):
-        self.mtr.run_until_stalled(speed, then=Stop.COAST, duty_limit=30)
-        self.advance += self.angle()
-        return
+        self.mtr.run_until_stalled(speed, then=Stop.COAST, duty_limit=self.duty)
+        self.advance += self.mtr.angle()
+        return self.advance
 
     #####################################################################
     # Function name: down(speed)
@@ -60,9 +81,9 @@ class arm():
     # Parameters:
     #   speed - what speed to turn the arm engine
     def down(self, speed=-360):
-        self.mtr.run_until_stalled(speed, then=Stop.COAST, duty_limit=30)
-        self.advance += self.angle()
-        return
+        self.mtr.run_until_stalled(speed, then=Stop.COAST, duty_limit=self.duty)
+        self.advance += self.mtr.angle()
+        return self.advance
 
 
 class Robo(DriveBase):
@@ -87,12 +108,12 @@ class Robo(DriveBase):
             print('gyro sensor is missing!')
         
         try:
-            self.lift = my_robot["lift"] and arm(Motor(my_robot["lift"],Direction.CLOCKWISE, my_robot["lift_gears"])) or None
+            self.lift = my_robot["lift"] and arm(Motor(my_robot["lift"],Direction.CLOCKWISE, my_robot["lift_gears"]), my_robot["lift_gears"].duty_limit) or None
         except OSError as error:
             print('lift motor is missing!')
         
         try:
-            self.arm = my_robot["arm"] and arm(Motor(my_robot["arm"],Direction.CLOCKWISE, my_robot["arm_gears"])) or None
+            self.arm = my_robot["arm"] and arm(Motor(my_robot["arm"],Direction.CLOCKWISE, my_robot["arm_gears"]), my_robot["lift_gears"].duty_limit) or None
         except OSError as error:
             print('arm motor is missing!')
     
@@ -107,6 +128,7 @@ class Robo(DriveBase):
     #   distance - driving distance, can be positive or negative
     #   speed    - driving speed, can be positive or negative
     #   angle    - driving angle, can be positive or negative
+    # Return value: the actual distance that the robot pass
     def drive_speed(self, distance, speed=250, angle=0):
         if speed==0 or distance == 0:
             return # nothing to do
@@ -114,21 +136,27 @@ class Robo(DriveBase):
         # use speed to indicate the driving direciton, distance is always positive
         if distance < 0 and speed > 0:
             speed = speed * -1
-        elif distance > 0 and speed < 0
+        elif distance > 0 and speed < 0:
             distance = distance * -1
 
-        # start driving
+        # reset measurments 
+        last_distance = 0
+        self.stop()
         self.reset()
+        # start driving
         self.drive(speed, angle)
-        if distance > 0 :
-            while self.distance() < distance:
-                wait(10)
-        else: # distance <= 0
-            while self.distance() > distance:
-                wait(10)
+        if ((distance > 0) and (self.distance() < distance) or ((distance < 0) and (self.distance() > distance)) and (blocked_count < 10):
+            wait(10)
+            curr_distance = self.distance()
+            if last_distance == curr_distance:
+                blocked_count = blocked_count + 1
+            else
+                blocked_count = 0
+            last_distance = curr_distance
+
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.distance()
 
     #####################################################################
     # Function name: straight_speed(distance, speed)
@@ -136,13 +164,15 @@ class Robo(DriveBase):
     # Parameters:
     #   distance - how much to drive
     #   speed    - how fast to drive
+    # Return value: the actual distance that the robot pass
     def straight_speed(self, distance, speed):
+        self.stop()
         self.reset()
         self.settings(speed)
         self.straight(distance)
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.distance()
     
     #####################################################################
     # Function name: turn_speed(angle, speed)
@@ -150,35 +180,42 @@ class Robo(DriveBase):
     # Parameters:
     #   angle - how much to turn
     #   speed - how fast to turn
+    # Return value: the actual angle that the robot turn
     def turn_speed(self, angle, speed):
+        self.stop()
         self.reset()
         self.settings(0, 0, speed, 0)
         self.turn(angle)
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.angle()
 
     #####################################################################
-    # Function name: drive_until_line(sensor, color)
+    # Function name: drive_to_line(sensor, color)
     # Description: drive the robot untill one of the light sensor hit a black or white line 
     # Parameters: 
     #   sensor - which sensor to use 0=right, 1=left, -1=any
     #   color  - which color to stop 0=black, 1=white
     # Return value: return the index of the sensor that stop the robot, or -1 if fail to detect a line
-    def drive_until_line(self, sensor=-1, color=0):
-        DETECTION_THRESHOLD = 10 # number of hits before we stop
-        BLACK = 9  # define that black is reflection of 0-9 
+    def drive_to_line(self, sensor=-1, color=0, speed=100):
+        DETECTION_THRESHOLD = 3 # number of hits before we stop
+        BLACK = 10  # define that black is reflection of 0-9 
         WHITE = 85 # define that white is reflection of 85-100
         DRIVE_SPEED = 100 # deriving speed towords the line
-        LOOP_DELAY = 20   # constant delay between color sensor samples 
 
+        if speed == 0:
+            return
         if sensor < -1 or sensor > 1:
-            raise Exception("drive_until_line input error: invalid sensor index")
+            raise Exception("drive_to_line input error: invalid sensor index")
         if color<0 or color>1:
-            raise Exception("drive_until_line input error: invalid solor number")
+            raise Exception("drive_to_line input error: invalid solor number")
         
+        loop_delay = (1000 - speed) / 10
+        if loop_delay <= 0:
+            loop_delay = 1
+
         stopSensorIndex = (sensor+2)%2
-        otherSensorIndex = (stopSensor+1)%2
+        otherSensorIndex = (stopSensorIndex+1)%2
         stopSensor  = self.color_sensors[stopSensorIndex]
         otherSensor = self.color_sensors[otherSensorIndex]
         
@@ -186,30 +223,45 @@ class Robo(DriveBase):
         countStopSensor  = 0
         countOtherSensor = 0
 
+        blocked_count = 0
+        self.stop()
+        self.reset()
+        last_distance = self.distance()
         while True:
-            self.drive(DRIVE_SPEED,0)
-            wait(LOOP_DELAY) # constant loop delay
+            self.drive(speed, 0)
+            wait(loop_delay) # constant loop delay
+            distance = self.distance()
+            if distance == last_distance:
+                blocked_count = blocked_count + 1
+            else
+                blocked_count = 0
             
+            if blocked_count >= 10:
+                break # the robot is blocked
+
             stopSensorValue  = stopSensor.reflection()
             otherSensorValue = otherSensor.reflection()
 
-            if ((stopSensorValue <= BLACK) and color == 0) or ((stopSensorValue >= WHITE) and color == 1):
-                countStopSensor += 1
+            if ((color == 0) and (stopSensorValue <= BLACK)) or ((color == 1) and (stopSensorValue >= WHITE)):
+                countStopSensor = countStopSensor + 1
             else:
                 countStopSensor = 0
 
-            if ((otherSensorValue <= BLACK) and color == 0) or ((otherSensorValue >= WHITE) and color == 1):
-                countOtherSensor += 1
+            if ((color == 0) and (otherSensorValue <= BLACK)) or ((color == 1) and (otherSensorValue >= WHITE)):
+                countOtherSensor = countOtherSensor + 1
             else:
                 countOtherSensor = 0
-            if (countStopSensor>=DETECTION_THRESHOLD) or (sensor==-1 and (countOtherSensor>=DETECTION_THRESHOLD)):
+            if (countStopSensor >= DETECTION_THRESHOLD) or ((sensor == -1) and (countOtherSensor >= DETECTION_THRESHOLD)):
                 break
+
         # stop he motors before returning to the caller
         self.stop()
-        if stopSensorValue>=DETECTION_THRESHOLD:
+        if countStopSensor >= DETECTION_THRESHOLD:
             return stopSensorIndex
-        else:
+        elif countOtherSensor >= DETECTION_THRESHOLD:
             return otherSensorIndex
+        else:
+            return -1
 
     #####################################################################
     # Function name: follow_line(sensor, distance, stopOnBlackLine)
@@ -219,7 +271,8 @@ class Robo(DriveBase):
     #   sensor          - which sensor index is useed to follow the line 0=right, 1=left, -1=auto-select
     #   distance        - if distance>0, the maximum distance to drive, or no-imit
     #   stopOnBlackLine - True=stops the robot if the other sensor hit black color
-    def follow_line(self, sensor=-1, distance=0, stopOnBlackLine=True):
+    # Return value: the distance that the robot passed 
+    def follow_line(self, sensor=-1, distance=-1, stopOnBlackLine=True):
         # number of black line hits on second sensor before stopping the robot
         STOP_ON_BLACK_THRESHOLD = 4 
         # Set the drive speed at 100 millimeters per second.
@@ -237,8 +290,8 @@ class Robo(DriveBase):
         # defines the reflected color value to follow as average between black and white 
         threshold = (BLACK + WHITE) / 2 
 
-        if sensor < 0 or sensor > -1:
-            raise Exception("follow_line input error: invalid sensor index")
+        if sensor <-1 or sensor > 1:
+            raise Exception("follow_to input error: invalid sensor index")
         if distance <= 0:
             distance = 1000000 # arbitary large number
         if stopOnBlackLine != True:
@@ -247,42 +300,43 @@ class Robo(DriveBase):
         # if self detection is selected, drive until any sensor hits a white line
         if sensor == -1:
             # drive untill the robot hits a white line with one of it's sensors
-            sensor = drive_until_line(sensor, 1)
+            sensor = self.drive_to_line(sensor=sensor, color=0, speed=100)
+            sensor = self.drive_to_line(sensor=sensor, color=1, speed=100)
+        
+        # the robbot is blocked
+        if sensor == -1:
+            return 0 
         
         lineSensor = self.color_sensors[sensor]
         stopSensor = self.color_sensors[(sensor+1)%2]
 
-        speed = 100
         direction = -1
-        maxCount = 1
-        while direction == -1:
-            count = 0
-            # detect if the robot is at the right side of the black line
-            while (direction == -1) and (count < maxCount):
-                self.left_wheal.run(speed=(-1 * speed))
-                self.right_wheal.run(speed=speed)
-                wait(10)
-                count += 1
-                if line_sensor.reflection() <= BLACK:
-                    direction = 0 # right to the black line
-
-            count = 0
-            # detect if the robot is at the left side of the black line
-            while (direction == -1) and (count < (maxCount*2)):
-                self.left_wheal.run(speed=speed)
-                self.right_wheal.run(speed=(-1 * speed))
-                wait(10)
-                count += 1
-                if line_sensor.reflection() <= BLACK:
-                    direction = 1 # left to the black line
+        angle = 15
+        self.stop()
+        self.reset()
+        self.settings(turn_rate=100, turn_acceleration=100)
+        while angle <= 90:
+            self.turn(-1 * angle)
+            if lineSensor.reflection() <= BLACK:
+                direction = 0 # right to the black line
+                break
+            self.turn(2 * angle)
+            if lineSensor.reflection() <= BLACK:
+                direction = 1 # left to the black line
+                break
+            angle = angle + 15
+            wait(20)
         
         stopCount = 0
         # sero the distance count
+        self.stop()
         self.reset()
+        last_distance = self.distance()
+        blocked_count = 0
         # Start following the line
         while True:
             # Calculate the deviation from the threshold.
-            deviation = line_sensor.reflection() - threshold
+            deviation = lineSensor.reflection() - threshold
 
             # Calculate the turn rate.
             turn_rate = PROPORTIONAL_GAIN * deviation
@@ -291,18 +345,25 @@ class Robo(DriveBase):
 
             # Set the drive base speed and turn rate.
             self.drive(DRIVE_SPEED, turn_rate)
-            wait(20)
+            wait(10)
             # You can wait for a short time or do other things in this loop.
             if stopOnBlackLine:
                 if stopSensor.reflection() <= BLACK:
                     stopCount += 1
                 else:
                     stopCount = 0
-                if stopCount == STOP_ON_BLACK_THRESHOLD:
+                if stopCount >= STOP_ON_BLACK_THRESHOLD:
                     break
+            if slef.distance() == last_distance:
+                blocked_count = blocked_count + 1
+            else
+                blocked_count = 0
+            if blocked_count >= 10:
+                break # the robot is blocked 
+        
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.distance()
 
     #####################################################################
     # Function name: drive_straight(distance, speed, acceleration)
@@ -315,10 +376,7 @@ class Robo(DriveBase):
         useGyro = self.use_gyro
         PROPORTIONAL_GAIN = 1.1
         MINIMUM_SPEED = 50
-        # sero the distance count
-        self.reset()
-        if useGyro:
-            self.gyro_sensor.reset_angle(0)
+
         if speed == 0:
             speed = 250 # set the speed to its' default value 
         elif speed < 0: # use distace to set the direction, speed asume positive
@@ -334,12 +392,20 @@ class Robo(DriveBase):
         elif acceleration > 0: # set the starting speed for acceleration
              currentSpeed = speedStep
     
+        # reset the distance count
+        self.stop()
+        self.reset()
+        if useGyro:
+            self.gyro_sensor.reset_angle(0)
+        blocked_count = 0
+        acceleration_distance = 0
+        curr_distance = self.distance()
         if distance < 0: # move backwards
             reverseSpeed = -1 * speed
             reverseCurrentSpeed = -1 * currentSpeed
             # reverse acceleration drive
             if acceleration > 0:
-                while self.distance() > (distance / 2) and reverseCurrentSpeed > reverseSpeed:
+                while (curr_distance > (distance / 2)) and (reverseCurrentSpeed > reverseSpeed) and (blocked_count < 10):
                     if useGyro:
                         angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
                     self.drive(reverseCurrentSpeed, angle_correction)
@@ -348,17 +414,27 @@ class Robo(DriveBase):
                         reverseCurrentSpeed -= speedStep
                     if reverseCurrentSpeed < reverseSpeed:
                         reverseCurrentSpeed = reverseSpeed
+                    if curr_distance == self.distance():
+                        blocked_count = blocked_count + 1
+                    else:
+                        blocked_count = 0
+                    curr_distance = self.distance()
 
-            acceleration_distance = self.distance()
+                acceleration_distance = curr_distance
             # full speed drive
-            while (self.distance() + acceleration_distance) > distance:
-                    if useGyro:
-                        angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
-                    self.drive(reverseSpeed, angle_correction)
-                    wait(10)
+            while ((self.distance() + acceleration_distance) > distance) and (blocked_count < 10):
+                if useGyro:
+                    angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
+                self.drive(reverseSpeed, angle_correction)
+                wait(10)
+                if curr_distance == self.distance():
+                    blocked_count = blocked_count + 1
+                else:
+                    blocked_count = 0
+                curr_distance = self.distance()
 
             # decceleration drive
-            while self.distance() > distance:
+            while (self.distance() > distance) and (blocked_count < 10):
                 if useGyro:
                     angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
                 self.drive(reverseCurrentSpeed, angle_correction)
@@ -367,10 +443,16 @@ class Robo(DriveBase):
                     reverseCurrentSpeed += speedStep
                 else:
                     reverseCurrentSpeed = MINIMUM_SPEED
+
+                if curr_distance == self.distance():
+                    blocked_count = blocked_count + 1
+                else:
+                    blocked_count = 0
+                curr_distance = self.distance()
         elif distance > 0: # move forwards
             # acceleration drive
             if acceleration > 0:
-                while self.distance() < (distance / 2) and currentSpeed < speed:
+                while (self.distance() < (distance / 2)) and (currentSpeed < speed) and (blocked_count < 10):
                     if useGyro:
                         angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
                     self.drive(currentSpeed, angle_correction)
@@ -379,17 +461,27 @@ class Robo(DriveBase):
                         currentSpeed += speedStep
                     if currentSpeed > speed:
                         currentSpeed = speed
+                    if curr_distance == self.distance():
+                        blocked_count = blocked_count + 1
+                    else:
+                        blocked_count = 0
+                    curr_distance = self.distance()
 
-            acceleration_distance = self.distance()
+                acceleration_distance = self.distance()
             # full speed drive
-            while (self.distance() + acceleration_distance) < distance:
+            while ((self.distance() + acceleration_distance) < distance) and (blocked_count < 10):
                 if useGyro:
                     angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
                 self.drive(speed, angle_correction)
                 wait(10)
+                if curr_distance == self.distance():
+                    blocked_count = blocked_count + 1
+                else:
+                    blocked_count = 0
+                curr_distance = self.distance()
 
             # decceleration drive
-            while self.distance() < distance:
+            while (self.distance() < distance) and (blocked_count < 10):
                 if useGyro:
                     angle_correction = -1 * PROPORTIONAL_GAIN * self.gyro_sensor.angle()
                 self.drive(currentSpeed, angle_correction)
@@ -398,9 +490,15 @@ class Robo(DriveBase):
                     currentSpeed -= speedStep
                 else:
                     currentSpeed = MINIMUM_SPEED
+                if curr_distance == self.distance():
+                    blocked_count = blocked_count + 1
+                else:
+                    blocked_count = 0
+                curr_distance = self.distance()
+
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.distance()
     
     #####################################################################
     # Function name: turn_gyro(angle, speed, acceleration)
@@ -410,6 +508,7 @@ class Robo(DriveBase):
     #   angle        - the angle to trun
     #   speed        - the speed of the turn
     #   acceleration - acceleration rate in mm/s/s
+    # Return value: returns the actual turn angle
     def turn_gyro(self, angle, speed=150, acceleration=0):
         ERROR_TOLERANCE = 4
         MINIMUM_TRUN_SPEED = 80
@@ -420,15 +519,19 @@ class Robo(DriveBase):
             speed = -1 * speed
         turn_angle = angle
 
-        # don't try to turn using gyro if the gyro is off or the angle is below threshold
-        if (self.use_gyro == False) or (abs(turn_angle) >= ERROR_TOLERANCE):
-            self.turn(angle)
-            self.stop()
-            return
-
         # acceleration must be none negative value
         if acceleration < 0:
             acceleration = 0
+
+        self.stop()
+        self.reset()
+        # don't try to turn using gyro if the gyro is off or the angle is below threshold
+        if (self.use_gyro == False) or (abs(turn_angle) >= ERROR_TOLERANCE):
+            self.settings(turn_rate=speed, turn_acceleration=acceleration)
+            self.turn(angle)
+            self.stop()
+            return self.angle()
+
         # acceleration is mm/s/s it 10 steps/sec rate
         speedStep = acceleration / 100
         currentSpeed = speed # default speed in case 
@@ -507,7 +610,7 @@ class Robo(DriveBase):
         
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.angle()
 
     #####################################################################
     # Function name: drive2(distance, speed, angle, acceleration)
@@ -522,6 +625,8 @@ class Robo(DriveBase):
         useGyro = self.use_gyro
         PROPORTIONAL_GAIN = 1.1
         MINIMUM_SPEED = 50
+
+        self.stop()
         self.reset()
         if useGyro:
             self.gyro_sensor.reset_angle(0)
@@ -608,6 +713,6 @@ class Robo(DriveBase):
 
         # stop he motors before returning to the caller
         self.stop()
-        return
+        return self.distance()
     
 
