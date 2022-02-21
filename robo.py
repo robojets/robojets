@@ -192,7 +192,7 @@ class Robo(DriveBase):
 
     #####################################################################
     # Function name: drive_to_line(sensor, color)
-    # Description: drive the robot untill one of the light sensor hit a black or white line 
+    # Description: drive the robot until one of the light sensor hit a black or white line 
     # Parameters: 
     #   sensor - which sensor to use 0=right, 1=left, -1=any
     #   color  - which color to stop 0=black, 1=white
@@ -264,6 +264,67 @@ class Robo(DriveBase):
             return -1
 
     #####################################################################
+    # Function name: straight_on_line(speed, color)
+    # Description: drive the robot until it is straitten on black or while line
+    #               using both left and rigth light sensors 
+    # Parameters: 
+    #   speed - how fast to drive, positive-value=forward, negative-value=backward 
+    #   color - which color to stop 0=black, 1=white
+    # Return value: Ture if the robot is strightten on a line, else False
+    def straight_on_line(self, speed=100, color=0):
+        DETECTION_THRESHOLD = 3 # number of hits before we stop
+        BLACK = 10  # define that black is reflection of 0-9 
+        WHITE = 85 # define that white is reflection of 85-100
+
+        if color < 0 or color > 1:
+            raise Exception("straight_on_line input error: invalid color input. use 0=BLACK, 1=WHITE")
+        
+        left_speed = speed
+        right_speed = speed
+        self.stop()
+        self.reset()
+        last_distance = self.distance()
+        left_color_sensor = self.color_sensors[0]
+        right_color_sensor = self.color_sensors[1]
+        left_detect = 0
+        right_detect = 0
+        while (right_speed != 0) and (left_speed != 0):
+            self.left_wheal.run(speed=left_speed)
+            self.right_wheal.run(speed=right_speed)
+            wait(10)
+
+            left_color = left_color_sensor.reflection()
+            right_color = right_color_sensor.reflection()
+            if ((color == 0) and (left_color <= BLACK)) or ((color == 1) and (left_color >= WHITE)):
+                left_detect = left_detect + 1
+            else:
+                left_detect = 0
+            if ((color == 0) and (right_color <= BLACK)) or ((color == 1) and (right_color >= WHITE)):
+                right_detect = right_detect + 1
+            else:
+                right_detect = 0
+
+            if left_detect >= DETECTION_THRESHOLD:
+                left_speed = 0 # found the line on the left side
+            if right_detect >= DETECTION_THRESHOLD:
+                right_speed = 0 # found the line on the right side
+            
+            curr_distance = self.distance()
+            if last_distance == curr_distance:
+                blocked_count = blocked_count + 1
+            else:
+                blocked_count = 0
+            if blocked_count >= 10:
+                break
+            last_distance = curr_distance
+
+        self.stop()
+        if (left_detect => DETECTION_THRESHOLD) and (right_detect >= DETECTION_THRESHOLD):
+            return True
+        else:
+            return False
+
+    #####################################################################
     # Function name: follow_line(sensor, distance, stopOnBlackLine)
     # Description: follow black line on the robot game map using color sensor 
     #               and proportional feedback loop
@@ -299,7 +360,7 @@ class Robo(DriveBase):
         
         # if self detection is selected, drive until any sensor hits a white line
         if sensor == -1:
-            # drive untill the robot hits a white line with one of it's sensors
+            # drive until the robot hits a white line with one of it's sensors
             sensor = self.drive_to_line(sensor=sensor, color=0, speed=100)
             sensor = self.drive_to_line(sensor=sensor, color=1, speed=100)
         
@@ -354,7 +415,7 @@ class Robo(DriveBase):
                     stopCount = 0
                 if stopCount >= STOP_ON_BLACK_THRESHOLD:
                     break
-            if slef.distance() == last_distance:
+            if self.distance() == last_distance:
                 blocked_count = blocked_count + 1
             else
                 blocked_count = 0

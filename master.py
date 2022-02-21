@@ -62,7 +62,7 @@ def master_func(run_list,robo):#זוהי הפעולה שהופכת את הלחי
             elif usr_input.clicks == 2:
                 print("forward")
                 crnt_run = (crnt_run+1)%len(run_list)#move next
-            elif usr_input.clicks ==3 :
+            elif usr_input.clicks ==3:
                 print("back")
                 crnt_run = (crnt_run-1)%len(run_list)#move previous
             else:
